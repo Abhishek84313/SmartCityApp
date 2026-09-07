@@ -10,8 +10,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
+import java.util.SplittableRandom;
 
 import com.smartcity.db.DBConnection;
 import com.smartcity.model.Place;
@@ -713,7 +713,13 @@ public class SmartCityApp {
      */
     private static Place findPlaceOfTheDay(Connection connection, int totalPlaces) throws SQLException {
         long seed = LocalDate.now().toEpochDay();
-        Random rng = new Random(seed);
+
+        // SplittableRandom rather than java.util.Random: seeding java.util.Random
+        // with consecutive days leaves the high bits of its first output unchanged,
+        // and nextInt() reads exactly those bits when the bound is a power of two.
+        // With 8 places that pinned the spotlight to a single place for 384 days in
+        // a row. SplittableRandom mixes the seed, so the pick really does roll over.
+        SplittableRandom rng = new SplittableRandom(seed);
         int offset = rng.nextInt(totalPlaces);
 
         try (PreparedStatement pstmt = connection.prepareStatement(SELECT_PLACE_AT_OFFSET_QUERY)) {
